@@ -6,7 +6,9 @@ services:
     plan: free
     # En Render Free no existe preDeployCommand; las migraciones se aplican
     # durante cada build antes de compilar e iniciar la API.
-    buildCommand: npm ci && npx prisma generate && npx prisma migrate deploy && npm run build
+    # NODE_ENV=production evita instalar devDependencies por defecto. Nest CLI
+    # se necesita solo durante el build, por eso se incluyen explícitamente.
+    buildCommand: npm ci --include=dev && npx prisma generate && npx prisma migrate deploy && npm run build
     startCommand: npm run start:prod
     healthCheckPath: /
     envVars:
