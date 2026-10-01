@@ -1,0 +1,29 @@
+# Dependencias y productos de compilación
+**/node_modules/
+backend/dist/
+frontend/.next/
+**/coverage/
+
+# Credenciales y configuraciones locales
+**/.env
+**/.env.local
+**/.env.*.local
+
+# Datos privados o generados en ejecución
+backups/
+backend/backups/
+backend/almacenamiento-privado/
+backend/*.log
+.runtime-logs/
+tmp/
+output/
+*.dump
+*.backup
+
+# Historiales Git locales previos, preservados fuera del monorepo
+.local-git-history/
+
+# Herramientas y sistema operativo
+.vercel/
+.claude/settings.local.json
+.DS_Store

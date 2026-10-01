@@ -1,0 +1,1123 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum EstadoUsuario {
+  ACTIVO
+  INACTIVO
+}
+
+enum EstadoCadete {
+  REGULAR
+  BAJA
+  EGRESADO
+}
+
+enum TipoAsignacionAcademica {
+  OPERADOR
+  RESPONSABLE
+}
+
+enum TipoAsignacionAdministrativa {
+  ENCARGADO
+}
+
+enum EstadoGestion {
+  PLANIFICACION
+  ACTIVA
+  CERRADA
+}
+
+enum TipoSeccion {
+  SISTEMA
+  ADMINISTRATIVA
+  ACADEMICA
+  DOCUMENTACION
+}
+
+enum PeriodoAcademico {
+  I
+  II
+}
+
+enum TipoDisciplina {
+  MERITO
+  DEMERITO
+}
+
+enum EstadoSemanaDisciplina {
+  BORRADOR
+  EN_REVISION
+  OBSERVADO
+  REVISADO
+  PUBLICADO
+}
+
+enum NivelRevisionNota {
+  ENCARGADO_AREA
+  SECCION_ACADEMICA
+  JEFE_ESTUDIOS
+}
+
+enum TipoMatrizAcademica {
+  SEMESTRAL
+  ANUAL
+}
+
+enum EstadoMatrizAcademica {
+  BORRADOR
+  EN_REVISION
+  OBSERVADO
+  APROBADO
+  PUBLICADO
+}
+
+enum ModuloNotificacion {
+  ACADEMICO
+  DOCUMENTAL
+  SISTEMA
+}
+
+model Usuario {
+  id_usuario     Int           @id @default(autoincrement())
+  nombres        String
+  apellidos      String
+  ci             String        @unique
+  correo         String?
+  contrasena     String
+  estado         EstadoUsuario @default(INACTIVO)
+  habilitado     Boolean       @default(true)
+  es_mixto       Boolean       @default(false)
+  fecha_creacion DateTime      @default(now())
+  primer_inicio  Boolean       @default(true)
+
+  // Módulos a los que pertenece el usuario
+  id_rol     Int
+  id_seccion Int?
+
+  rol     Rol      @relation(fields: [id_rol], references: [id_rol])
+  seccion Seccion? @relation(fields: [id_seccion], references: [id_seccion])
+  cadete  Cadete? // Relación 1:1 con Cadete
+
+  // Relaciones de jerarquía organizacionales
+  permisos_individuales UsuarioPermiso[]
+
+  // Relaciones de Asignaciones
+  asignaciones_academicas      AsignacionAcademica[]
+  asignaciones_administrativas AsignacionAdministrativa[]
+  historial_passwords          HistorialPassword[]
+
+  // Logs y Auditoría
+  sesiones                             Sesion[]
+  codigos                              CodigoVerificacion[]
+  logs_acceso                          LogAcceso[]
+  auditorias                           AuditoriaAccion[]
+  periodos_lectivos_creados            PeriodoLectivo[]                   @relation("CreadorPeriodoLectivo")
+  configuraciones_disciplina_creadas   ConfiguracionDisciplinaPeriodo[]   @relation("CreadorConfiguracionDisciplina")
+  oficiales_disciplina_creados         OficialDisciplina[]                @relation("CreadorOficialDisciplina")
+  catalogos_disciplina_creados         CatalogoDisciplina[]               @relation("CreadorCatalogoDisciplina")
+  semanas_disciplina_creadas           SemanaDisciplina[]                 @relation("CreadorSemanaDisciplina")
+  semanas_disciplina_responsable       SemanaDisciplina[]                 @relation("UltimoResponsableSemanaDisciplina")
+  registros_disciplina_creados         RegistroDisciplina[]               @relation("CreadorRegistroDisciplina")
+  resultados_disciplina_publicados     ResultadoFinalDisciplina[]         @relation("PublicadorResultadoDisciplina")
+  resultados_disciplina_enviados       ResultadoFinalDisciplina[]         @relation("EmisorResultadoDisciplina")
+  configuraciones_evaluaciones_creadas ConfiguracionEvaluacionesPeriodo[] @relation("CreadorConfiguracionEvaluaciones")
+  materias_evaluacion_creadas          MateriaEvaluacion[]                @relation("CreadorMateriaEvaluacion")
+  materias_evaluacion_responsable      MateriaEvaluacion[]                @relation("UltimoResponsableMateriaEvaluacion")
+  notas_evaluacion_creadas             NotaEvaluacion[]                   @relation("CreadorNotaEvaluacion")
+  planillas_entrenamiento_creadas      PlanillaEntrenamientoFisico[]      @relation("CreadorPlanillaEntrenamiento")
+  planillas_entrenamiento_responsable  PlanillaEntrenamientoFisico[]      @relation("UltimoResponsablePlanillaEntrenamiento")
+  notas_entrenamiento_creadas          NotaEntrenamientoFisico[]          @relation("CreadorNotaEntrenamiento")
+  notificaciones_recibidas             Notificacion[]
+
+  // Gestión Documental
+  documentos_registrados              Documento[]                  @relation("DocumentoUsuarioRegistro")
+  expedientes_responsable_actual      ExpedienteDocumento[]        @relation("ExpedienteResponsableActual")
+  hojas_ruta_asignadas                HojaRuta[]                   @relation("HojaRutaUsuarioAsigno")
+  proveidos_emitidos                  Proveido[]                   @relation("ProveidoUsuarioEmisor")
+  plazos_documento_responsable        PlazoDocumento[]             @relation("PlazoUsuarioResponsable")
+  movimientos_documento_enviados      MovimientoDocumento[]        @relation("MovimientoUsuarioEnvia")
+  movimientos_documento_recibidos     MovimientoDocumento[]        @relation("MovimientoUsuarioRecibe")
+  cambios_estado_documento            HistorialEstadoDocumento[]   @relation("HistorialEstadoUsuario")
+  cumplimientos_documento             CumplimientoDocumento[]      @relation("CumplimientoUsuario")
+  relaciones_documento_registradas    DocumentoRelacionado[]       @relation("DocumentoRelacionadoUsuario")
+  observaciones_documento             ObservacionDocumento[]       @relation("ObservacionUsuario")
+  archivos_documento_subidos          ArchivoDocumento[]           @relation("ArchivoUsuarioSubida")
+  antecedentes_academicos_registrados AntecedenteAcademicoCadete[] @relation("RegistradorAntecedenteAcademico")
+  matrices_academicas_creadas         MatrizAcademica[]            @relation("CreadorMatrizAcademica")
+}
+
+model Cadete {
+  id_cadete           Int          @id @default(autoincrement())
+  id_usuario          Int          @unique
+  arma                String?
+  id_curso            Int
+  gestion_ingreso     Int
+  gestion_egreso      Int?
+  estado_cadete       EstadoCadete @default(REGULAR)
+  fecha_ingreso       DateTime     @default(now())
+  fecha_actualizacion DateTime     @updatedAt
+
+  usuario                 Usuario                      @relation(fields: [id_usuario], references: [id_usuario], onDelete: Restrict)
+  curso                   Curso                        @relation(fields: [id_curso], references: [id_curso])
+  historial_cursos        HistorialCursoCadete[]
+  registros_disciplina    RegistroDisciplina[]
+  resultados_disciplina   ResultadoFinalDisciplina[]
+  notas_evaluacion        NotaEvaluacion[]
+  notas_entrenamiento     NotaEntrenamientoFisico[]
+  antecedentes_academicos AntecedenteAcademicoCadete[]
+  detalles_matriz         DetalleMatrizAcademica[]
+
+  @@index([id_curso])
+}
+
+/// Historial académico real creado por publicaciones o cierres académicos.
+/// Gestión, periodo y semestre se obtienen desde PeriodoLectivo y Curso.
+model HistorialCursoCadete {
+  id_historial   Int          @id @default(autoincrement())
+  id_cadete      Int
+  id_curso       Int
+  id_periodo     Int
+  estado_cadete  EstadoCadete
+  fecha_registro DateTime     @default(now())
+
+  cadete         Cadete         @relation(fields: [id_cadete], references: [id_cadete], onDelete: Restrict)
+  curso          Curso          @relation(fields: [id_curso], references: [id_curso])
+  periodoLectivo PeriodoLectivo @relation(fields: [id_periodo], references: [id_periodo], onDelete: Restrict)
+
+  @@unique([id_cadete, id_periodo])
+  @@index([id_cadete])
+  @@index([id_curso])
+  @@index([id_periodo])
+}
+
+model AsignacionAcademica {
+  id_asignacion    Int                     @id @default(autoincrement())
+  id_usuario       Int
+  id_seccion       Int
+  id_curso         Int?
+  tipo             TipoAsignacionAcademica
+  activo           Boolean                 @default(true)
+  fecha_asignacion DateTime                @default(now())
+  fecha_fin        DateTime?
+
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Restrict)
+  seccion Seccion @relation(fields: [id_seccion], references: [id_seccion], onDelete: Restrict)
+  curso   Curso?  @relation(fields: [id_curso], references: [id_curso], onDelete: SetNull)
+
+  @@unique([id_usuario, id_seccion, id_curso])
+  @@index([id_seccion, tipo, activo])
+}
+
+model AsignacionAdministrativa {
+  id_asignacion    Int                          @id @default(autoincrement())
+  id_usuario       Int
+  id_seccion       Int
+  tipo             TipoAsignacionAdministrativa @default(ENCARGADO)
+  activo           Boolean                      @default(true)
+  fecha_asignacion DateTime                     @default(now())
+  fecha_fin        DateTime?
+
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Restrict)
+  seccion Seccion @relation(fields: [id_seccion], references: [id_seccion], onDelete: Restrict)
+
+  @@unique([id_usuario, id_seccion])
+  @@index([id_seccion, activo])
+}
+
+model HistorialPassword {
+  id_historial Int      @id @default(autoincrement())
+  id_usuario   Int
+  contrasena   String
+  fecha_cambio DateTime @default(now())
+
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+}
+
+model Rol {
+  id_rol      Int     @id @default(autoincrement())
+  nombre      String  @unique
+  descripcion String?
+  estado      Boolean @default(true)
+
+  usuarios Usuario[]
+  permisos RolPermiso[]
+}
+
+model Seccion {
+  id_seccion       Int         @id @default(autoincrement())
+  nombre           String      @unique
+  descripcion      String?
+  nivel            Int
+  estado           Boolean     @default(true)
+  tipo             TipoSeccion @default(ADMINISTRATIVA)
+  id_seccion_padre Int?
+
+  seccion_padre                Seccion?                   @relation("JerarquiaSeccion", fields: [id_seccion_padre], references: [id_seccion])
+  subsecciones                 Seccion[]                  @relation("JerarquiaSeccion")
+  usuarios                     Usuario[]
+  asignaciones_academicas      AsignacionAcademica[]
+  asignaciones_administrativas AsignacionAdministrativa[]
+
+  // Gestión Documental
+  expedientes_actuales     ExpedienteDocumento[]      @relation("ExpedienteSeccionActual")
+  documentos_registrados   Documento[]                @relation("DocumentoSeccionRegistro")
+  hojas_ruta               HojaRuta[]                 @relation("HojaRutaSeccion")
+  proveidos_emitidos       Proveido[]                 @relation("ProveidoSeccionEmisora")
+  proveidos_destino        Proveido[]                 @relation("ProveidoSeccionDestino")
+  plazos_responsable       PlazoDocumento[]           @relation("PlazoSeccionResponsable")
+  movimientos_origen       MovimientoDocumento[]      @relation("MovimientoSeccionOrigen")
+  movimientos_destino      MovimientoDocumento[]      @relation("MovimientoSeccionDestino")
+  cambios_estado_documento HistorialEstadoDocumento[] @relation("HistorialEstadoSeccion")
+  cumplimientos_documento  CumplimientoDocumento[]    @relation("CumplimientoSeccion")
+  observaciones_documento  ObservacionDocumento[]     @relation("ObservacionSeccion")
+}
+
+model Curso {
+  id_curso                     Int                                @id @default(autoincrement())
+  nombre                       String                             @unique
+  orden                        Int                                @unique
+  cadetes                      Cadete[]
+  asignaciones_academicas      AsignacionAcademica[]
+  historial_cadetes            HistorialCursoCadete[]
+  configuraciones_disciplina   ConfiguracionDisciplinaPeriodo[]
+  semanas_disciplina           SemanaDisciplina[]
+  resultados_disciplina        ResultadoFinalDisciplina[]
+  configuraciones_evaluaciones ConfiguracionEvaluacionesPeriodo[]
+  materias_evaluacion          MateriaEvaluacion[]
+  planillas_entrenamiento      PlanillaEntrenamientoFisico[]
+  matrices_academicas          MatrizAcademica[]
+}
+
+model Permiso {
+  id_permiso  Int     @id @default(autoincrement())
+  nombre      String  @unique
+  modulo      String
+  accion      String
+  descripcion String?
+  estado      Boolean @default(true)
+
+  roles    RolPermiso[]
+  usuarios UsuarioPermiso[]
+}
+
+model UsuarioPermiso {
+  id_usuario_permiso Int     @id @default(autoincrement())
+  id_usuario         Int
+  id_permiso         Int
+  concedido          Boolean @default(true)
+
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario], onDelete: Cascade)
+  permiso Permiso @relation(fields: [id_permiso], references: [id_permiso], onDelete: Cascade)
+
+  @@unique([id_usuario, id_permiso])
+}
+
+model RolPermiso {
+  id_rol_permiso Int @id @default(autoincrement())
+  id_rol         Int
+  id_permiso     Int
+
+  rol     Rol     @relation(fields: [id_rol], references: [id_rol])
+  permiso Permiso @relation(fields: [id_permiso], references: [id_permiso])
+
+  @@unique([id_rol, id_permiso])
+}
+
+model Sesion {
+  id_sesion        Int       @id @default(autoincrement())
+  id_usuario       Int
+  token            String
+  refresh_token    String?
+  fecha_inicio     DateTime  @default(now())
+  fecha_expiracion DateTime
+  estado           Boolean   @default(true)
+  activa           Boolean   @default(true)
+  ip               String?
+  user_agent       String?
+  fecha_cierre     DateTime?
+  motivo_cierre    String?
+
+  usuario            Usuario            @relation(fields: [id_usuario], references: [id_usuario])
+  refresh_historicos RefreshHistorico[]
+}
+
+model RefreshHistorico {
+  id_refresh_historico Int      @id @default(autoincrement())
+  id_sesion            Int
+  token_hash           String   @unique
+  revocado             Boolean  @default(false)
+  usado                Boolean  @default(false)
+  fecha_creacion       DateTime @default(now())
+  fecha_expiracion     DateTime
+
+  sesion Sesion @relation(fields: [id_sesion], references: [id_sesion], onDelete: Cascade)
+}
+
+model CodigoVerificacion {
+  id_codigo        Int       @id @default(autoincrement())
+  codigo           String
+  usado            Boolean   @default(false)
+  fecha_creacion   DateTime  @default(now())
+  fecha_expiracion DateTime
+  tipo             String    @default("OTP")
+  fecha_uso        DateTime?
+  intentos         Int       @default(0)
+  ip_solicitud     String?
+
+  id_usuario Int
+  usuario    Usuario @relation(fields: [id_usuario], references: [id_usuario])
+}
+
+model GestionAcademica {
+  id_gestion Int           @id @default(autoincrement())
+  ano        Int           @unique
+  estado     EstadoGestion @default(PLANIFICACION)
+
+  periodos_lectivos PeriodoLectivo[]
+}
+
+/// Periodo académico administrable (I/2026, II/2026...) creado únicamente por el Administrador.
+/// El semestre de un cadete se calcula desde su curso y este periodo; nunca se guarda duplicado.
+model PeriodoLectivo {
+  id_periodo          Int              @id @default(autoincrement())
+  id_gestion          Int
+  periodo             PeriodoAcademico
+  activo              Boolean          @default(false)
+  id_creador          Int
+  fecha_creacion      DateTime         @default(now())
+  fecha_actualizacion DateTime         @updatedAt
+
+  gestion                      GestionAcademica                   @relation(fields: [id_gestion], references: [id_gestion], onDelete: Restrict)
+  creador                      Usuario                            @relation("CreadorPeriodoLectivo", fields: [id_creador], references: [id_usuario], onDelete: Restrict)
+  historial_cadetes            HistorialCursoCadete[]
+  configuraciones_disciplina   ConfiguracionDisciplinaPeriodo[]
+  semanas_disciplina           SemanaDisciplina[]
+  resultados_disciplina        ResultadoFinalDisciplina[]
+  configuraciones_evaluaciones ConfiguracionEvaluacionesPeriodo[]
+  materias_evaluacion          MateriaEvaluacion[]
+  planillas_entrenamiento      PlanillaEntrenamientoFisico[]
+  matrices_academicas          MatrizAcademica[]
+
+  @@unique([id_gestion, periodo])
+  @@index([activo])
+}
+
+model ConfiguracionDisciplinaPeriodo {
+  id_configuracion    Int      @id @default(autoincrement())
+  id_periodo          Int
+  id_curso            Int
+  cantidad_semanas    Int
+  activo              Boolean  @default(true)
+  id_creador          Int
+  fecha_creacion      DateTime @default(now())
+  fecha_actualizacion DateTime @updatedAt
+
+  periodo PeriodoLectivo @relation(fields: [id_periodo], references: [id_periodo], onDelete: Restrict)
+  curso   Curso          @relation(fields: [id_curso], references: [id_curso], onDelete: Restrict)
+  creador Usuario        @relation("CreadorConfiguracionDisciplina", fields: [id_creador], references: [id_usuario], onDelete: Restrict)
+
+  @@unique([id_periodo, id_curso])
+  @@index([activo])
+}
+
+model OficialDisciplina {
+  id_oficial          Int      @id @default(autoincrement())
+  codigo              String   @unique @db.VarChar(30)
+  nombre_completo     String   @db.VarChar(200)
+  activo              Boolean  @default(true)
+  id_creador          Int
+  fecha_creacion      DateTime @default(now())
+  fecha_actualizacion DateTime @updatedAt
+
+  creador   Usuario              @relation("CreadorOficialDisciplina", fields: [id_creador], references: [id_usuario], onDelete: Restrict)
+  registros RegistroDisciplina[]
+
+  @@index([activo])
+}
+
+model CatalogoDisciplina {
+  id_catalogo         Int            @id @default(autoincrement())
+  tipo                TipoDisciplina
+  codigo              String         @db.VarChar(30)
+  nombre              String         @db.VarChar(200)
+  puntaje_base        Decimal?       @db.Decimal(10, 4)
+  activo              Boolean        @default(true)
+  id_creador          Int
+  fecha_creacion      DateTime       @default(now())
+  fecha_actualizacion DateTime       @updatedAt
+
+  creador   Usuario              @relation("CreadorCatalogoDisciplina", fields: [id_creador], references: [id_usuario], onDelete: Restrict)
+  registros RegistroDisciplina[]
+
+  @@unique([tipo, codigo])
+  @@index([tipo, activo])
+}
+
+model SemanaDisciplina {
+  id_semana             Int                    @id @default(autoincrement())
+  id_periodo            Int
+  id_curso              Int
+  numero_semana         Int
+  estado                EstadoSemanaDisciplina @default(BORRADOR)
+  nivel_revision_actual NivelRevisionNota?
+  version_flujo         Int                    @default(0)
+  id_creador            Int
+  id_ultimo_responsable Int
+  fecha_creacion        DateTime               @default(now())
+  fecha_actualizacion   DateTime               @updatedAt
+  fecha_envio           DateTime?
+  fecha_revision        DateTime?
+  fecha_publicacion     DateTime?
+
+  periodo            PeriodoLectivo       @relation(fields: [id_periodo], references: [id_periodo], onDelete: Restrict)
+  curso              Curso                @relation(fields: [id_curso], references: [id_curso], onDelete: Restrict)
+  creador            Usuario              @relation("CreadorSemanaDisciplina", fields: [id_creador], references: [id_usuario], onDelete: Restrict)
+  ultimo_responsable Usuario              @relation("UltimoResponsableSemanaDisciplina", fields: [id_ultimo_responsable], references: [id_usuario], onDelete: Restrict)
+  registros          RegistroDisciplina[]
+
+  @@unique([id_periodo, id_curso, numero_semana])
+  @@index([id_periodo, id_curso, estado])
+  @@index([estado, nivel_revision_actual])
+  @@index([id_creador])
+}
+
+model RegistroDisciplina {
+  id_registro               Int       @id @default(autoincrement())
+  id_semana                 Int
+  id_cadete                 Int
+  id_catalogo               Int
+  id_oficial                Int?
+  nombre_responsable_manual String?   @db.VarChar(200)
+  fecha_hecho               DateTime? @db.Date
+  puntaje                   Decimal   @db.Decimal(10, 4)
+  observacion               String?   @db.Text
+  id_creador                Int
+  fecha_creacion            DateTime  @default(now())
+  fecha_actualizacion       DateTime  @updatedAt
+
+  semana   SemanaDisciplina   @relation(fields: [id_semana], references: [id_semana], onDelete: Restrict)
+  cadete   Cadete             @relation(fields: [id_cadete], references: [id_cadete], onDelete: Restrict)
+  catalogo CatalogoDisciplina @relation(fields: [id_catalogo], references: [id_catalogo], onDelete: Restrict)
+  oficial  OficialDisciplina? @relation(fields: [id_oficial], references: [id_oficial], onDelete: Restrict)
+  creador  Usuario            @relation("CreadorRegistroDisciplina", fields: [id_creador], references: [id_usuario], onDelete: Restrict)
+
+  @@index([id_semana, id_cadete])
+  @@index([id_cadete])
+  @@index([id_catalogo])
+}
+
+/// Snapshot aprobado de la nota final de Disciplina. No duplica detalles
+/// semanales y es el contrato mínimo que posteriormente consumirá Evaluaciones.
+model ResultadoFinalDisciplina {
+  id_resultado             Int       @id @default(autoincrement())
+  id_cadete                Int
+  id_periodo               Int
+  id_curso                 Int
+  nota_final_disciplina    Decimal   @db.Decimal(10, 4)
+  id_publicador            Int
+  fecha_publicacion        DateTime  @default(now())
+  id_emisor_evaluaciones   Int?
+  fecha_envio_evaluaciones DateTime?
+
+  cadete              Cadete         @relation(fields: [id_cadete], references: [id_cadete], onDelete: Restrict)
+  periodo             PeriodoLectivo @relation(fields: [id_periodo], references: [id_periodo], onDelete: Restrict)
+  curso               Curso          @relation(fields: [id_curso], references: [id_curso], onDelete: Restrict)
+  publicador          Usuario        @relation("PublicadorResultadoDisciplina", fields: [id_publicador], references: [id_usuario], onDelete: Restrict)
+  emisor_evaluaciones Usuario?       @relation("EmisorResultadoDisciplina", fields: [id_emisor_evaluaciones], references: [id_usuario], onDelete: Restrict)
+
+  @@unique([id_cadete, id_periodo, id_curso])
+  @@index([id_periodo, id_curso])
+  @@index([fecha_envio_evaluaciones])
+}
+
+model ConfiguracionEvaluacionesPeriodo {
+  id_configuracion    Int      @id @default(autoincrement())
+  id_periodo          Int
+  id_curso            Int
+  cantidad_materias   Int
+  activo              Boolean  @default(true)
+  id_creador          Int
+  fecha_creacion      DateTime @default(now())
+  fecha_actualizacion DateTime @updatedAt
+
+  periodo PeriodoLectivo @relation(fields: [id_periodo], references: [id_periodo], onDelete: Restrict)
+  curso   Curso          @relation(fields: [id_curso], references: [id_curso], onDelete: Restrict)
+  creador Usuario        @relation("CreadorConfiguracionEvaluaciones", fields: [id_creador], references: [id_usuario], onDelete: Restrict)
+
+  @@unique([id_periodo, id_curso])
+  @@index([activo])
+}
+
+model MateriaEvaluacion {
+  id_materia            Int                    @id @default(autoincrement())
+  id_periodo            Int
+  id_curso              Int
+  numero_materia        Int
+  nombre                String                 @db.VarChar(200)
+  estado                EstadoSemanaDisciplina @default(BORRADOR)
+  nivel_revision_actual NivelRevisionNota?
+  version_flujo         Int                    @default(0)
+  id_creador            Int
+  id_ultimo_responsable Int
+  fecha_creacion        DateTime               @default(now())
+  fecha_actualizacion   DateTime               @updatedAt
+  fecha_envio           DateTime?
+  fecha_revision        DateTime?
+  fecha_publicacion     DateTime?
+
+  periodo            PeriodoLectivo   @relation(fields: [id_periodo], references: [id_periodo], onDelete: Restrict)
+  curso              Curso            @relation(fields: [id_curso], references: [id_curso], onDelete: Restrict)
+  creador            Usuario          @relation("CreadorMateriaEvaluacion", fields: [id_creador], references: [id_usuario], onDelete: Restrict)
+  ultimo_responsable Usuario          @relation("UltimoResponsableMateriaEvaluacion", fields: [id_ultimo_responsable], references: [id_usuario], onDelete: Restrict)
+  notas              NotaEvaluacion[]
+
+  @@unique([id_periodo, id_curso, numero_materia])
+  @@index([id_periodo, id_curso, estado])
+  @@index([estado, nivel_revision_actual])
+  @@index([id_creador])
+}
+
+model NotaEvaluacion {
+  id_nota             Int      @id @default(autoincrement())
+  id_materia          Int
+  id_cadete           Int
+  nota_inicial        Decimal  @db.Decimal(10, 4)
+  nota_desquite       Decimal? @db.Decimal(10, 4)
+  id_creador          Int
+  fecha_creacion      DateTime @default(now())
+  fecha_actualizacion DateTime @updatedAt
+
+  materia MateriaEvaluacion @relation(fields: [id_materia], references: [id_materia], onDelete: Restrict)
+  cadete  Cadete            @relation(fields: [id_cadete], references: [id_cadete], onDelete: Restrict)
+  creador Usuario           @relation("CreadorNotaEvaluacion", fields: [id_creador], references: [id_usuario], onDelete: Restrict)
+
+  @@unique([id_materia, id_cadete])
+  @@index([id_cadete])
+  @@index([id_creador])
+}
+
+/// Planilla completa de Entrenamiento Fisico para un curso y periodo.
+/// Reutiliza el workflow comun de Notas y nunca se publica al cadete.
+model PlanillaEntrenamientoFisico {
+  id_planilla           Int                    @id @default(autoincrement())
+  id_periodo            Int
+  id_curso              Int
+  estado                EstadoSemanaDisciplina @default(BORRADOR)
+  nivel_revision_actual NivelRevisionNota?
+  version_flujo         Int                    @default(0)
+  id_creador            Int
+  id_ultimo_responsable Int
+  fecha_creacion        DateTime               @default(now())
+  fecha_actualizacion   DateTime               @updatedAt
+  fecha_envio           DateTime?
+  fecha_revision        DateTime?
+
+  periodo            PeriodoLectivo            @relation(fields: [id_periodo], references: [id_periodo], onDelete: Restrict)
+  curso              Curso                     @relation(fields: [id_curso], references: [id_curso], onDelete: Restrict)
+  creador            Usuario                   @relation("CreadorPlanillaEntrenamiento", fields: [id_creador], references: [id_usuario], onDelete: Restrict)
+  ultimo_responsable Usuario                   @relation("UltimoResponsablePlanillaEntrenamiento", fields: [id_ultimo_responsable], references: [id_usuario], onDelete: Restrict)
+  notas              NotaEntrenamientoFisico[]
+
+  @@unique([id_periodo, id_curso])
+  @@index([id_periodo, id_curso, estado])
+  @@index([estado, nivel_revision_actual])
+  @@index([id_creador])
+}
+
+/// Fila de la nomina congelada de una planilla. nota_final permanece nula
+/// mientras el Encargado aun no registra la calificacion.
+model NotaEntrenamientoFisico {
+  id_nota             Int      @id @default(autoincrement())
+  id_planilla         Int
+  id_cadete           Int
+  nota_final          Decimal? @db.Decimal(10, 4)
+  id_creador          Int
+  fecha_creacion      DateTime @default(now())
+  fecha_actualizacion DateTime @updatedAt
+
+  planilla PlanillaEntrenamientoFisico @relation(fields: [id_planilla], references: [id_planilla], onDelete: Restrict)
+  cadete   Cadete                      @relation(fields: [id_cadete], references: [id_cadete], onDelete: Restrict)
+  creador  Usuario                     @relation("CreadorNotaEntrenamiento", fields: [id_creador], references: [id_usuario], onDelete: Restrict)
+
+  @@unique([id_planilla, id_cadete])
+  @@index([id_cadete])
+  @@index([id_creador])
+}
+
+/// Únicamente conserva antecedentes que no existen en matrices anuales
+/// oficiales. Las gestiones 2026 en adelante se resuelven primero desde
+/// MatrizAcademica y no se duplican aquí.
+model AntecedenteAcademicoCadete {
+  id_antecedente      Int      @id @default(autoincrement())
+  id_cadete           Int
+  gestion             Int
+  promedio_general    Decimal  @db.Decimal(10, 4)
+  cantidad_aplazos    Int
+  id_registrador      Int
+  fecha_creacion      DateTime @default(now())
+  fecha_actualizacion DateTime @updatedAt
+
+  cadete      Cadete  @relation(fields: [id_cadete], references: [id_cadete], onDelete: Restrict)
+  registrador Usuario @relation("RegistradorAntecedenteAcademico", fields: [id_registrador], references: [id_usuario], onDelete: Restrict)
+
+  @@unique([id_cadete, gestion])
+  @@index([gestion])
+}
+
+/// Cabecera del snapshot académico consolidado. id_periodo conserva la
+/// gestión y el periodo reales con los que se publicó, aun si el cadete
+/// cambia posteriormente de curso.
+model MatrizAcademica {
+  id_matriz             Int                   @id @default(autoincrement())
+  id_periodo            Int
+  id_curso              Int
+  tipo                  TipoMatrizAcademica
+  estado                EstadoMatrizAcademica @default(BORRADOR)
+  nivel_revision_actual NivelRevisionNota?
+  version_flujo         Int                   @default(0)
+  id_creador            Int
+  fecha_creacion        DateTime              @default(now())
+  fecha_actualizacion   DateTime              @updatedAt
+  fecha_envio           DateTime?
+  fecha_revision        DateTime?
+  fecha_aprobacion      DateTime?
+  fecha_publicacion     DateTime?
+
+  periodo  PeriodoLectivo           @relation(fields: [id_periodo], references: [id_periodo], onDelete: Restrict)
+  curso    Curso                    @relation(fields: [id_curso], references: [id_curso], onDelete: Restrict)
+  creador  Usuario                  @relation("CreadorMatrizAcademica", fields: [id_creador], references: [id_usuario], onDelete: Restrict)
+  detalles DetalleMatrizAcademica[]
+
+  @@unique([id_periodo, id_curso, tipo])
+  @@index([estado, nivel_revision_actual])
+  @@index([id_curso, tipo, fecha_publicacion])
+}
+
+/// Una fila por cadete y matriz. No copia materias: estas continúan en
+/// Evaluaciones. Los campos de área son nulos en la matriz anual.
+model DetalleMatrizAcademica {
+  id_detalle                  Int      @id @default(autoincrement())
+  id_matriz                   Int
+  id_cadete                   Int
+  promedio_academico          Decimal? @db.Decimal(10, 4)
+  ponderacion_evaluaciones    Decimal? @db.Decimal(10, 4)
+  nota_entrenamiento_fisico   Decimal? @db.Decimal(10, 4)
+  ponderacion_entrenamiento   Decimal? @db.Decimal(10, 4)
+  nota_disciplina             Decimal? @db.Decimal(10, 4)
+  ponderacion_disciplina      Decimal? @db.Decimal(10, 4)
+  promedio_general            Decimal  @db.Decimal(10, 4)
+  cantidad_aplazos            Int
+  promedio_acumulado          Decimal  @db.Decimal(10, 4)
+  cantidad_aplazos_acumulados Int
+  atributo                    String   @db.VarChar(2)
+  orden_merito                Int
+
+  matriz MatrizAcademica @relation(fields: [id_matriz], references: [id_matriz], onDelete: Restrict)
+  cadete Cadete          @relation(fields: [id_cadete], references: [id_cadete], onDelete: Restrict)
+
+  @@unique([id_matriz, id_cadete])
+  @@unique([id_matriz, orden_merito])
+  @@index([id_cadete])
+}
+
+model Notificacion {
+  id_notificacion         Int                @id @default(autoincrement())
+  id_usuario_destinatario Int
+  modulo                  ModuloNotificacion
+  area                    String?            @db.VarChar(50)
+  tipo                    String             @db.VarChar(80)
+  titulo                  String             @db.VarChar(160)
+  mensaje                 String             @db.Text
+  id_referencia           Int?
+  ruta_destino            String?            @db.VarChar(255)
+  clave_evento            String             @unique @db.VarChar(255)
+  leida                   Boolean            @default(false)
+  fecha_creacion          DateTime           @default(now())
+  fecha_lectura           DateTime?
+
+  destinatario Usuario @relation(fields: [id_usuario_destinatario], references: [id_usuario], onDelete: Restrict)
+
+  @@index([id_usuario_destinatario, leida, fecha_creacion])
+}
+
+model LogAcceso {
+  id_log_acceso    Int      @id @default(autoincrement())
+  id_usuario       Int?
+  correo_intentado String
+  evento           String
+  exito            Boolean
+  ip               String?
+  user_agent       String?
+  fecha            DateTime @default(now())
+  detalle          String?
+
+  usuario Usuario? @relation(fields: [id_usuario], references: [id_usuario])
+}
+
+model AuditoriaAccion {
+  id_auditoria  Int      @id @default(autoincrement())
+  id_usuario    Int
+  accion        String
+  modulo        String
+  entidad       String
+  id_entidad    Int
+  descripcion   String
+  datos_antes   Json?
+  datos_despues Json?
+  ip            String?
+  user_agent    String?
+  fecha         DateTime @default(now())
+
+  usuario Usuario @relation(fields: [id_usuario], references: [id_usuario])
+}
+
+// ============================================================
+// MÓDULO: GESTIÓN DOCUMENTAL
+// ============================================================
+
+enum TipoDocumento {
+  RADIOGRAMA
+  MEMORANDUM
+  OFICIO
+  NOTA_SERVICIO
+  INFORME
+  DIRECTIVA
+  CIRCULAR
+  PARTE
+}
+
+enum TipoAtencionRequerida {
+  CUMPLIMIENTO
+  RESPUESTA
+}
+
+enum AmbitoCorrelativoDocumental {
+  HOJA_RUTA
+  DOC_RADIOGRAMA
+  DOC_MEMORANDUM
+  DOC_OFICIO
+  DOC_NOTA_SERVICIO
+  DOC_INFORME
+  DOC_DIRECTIVA
+  DOC_CIRCULAR
+  DOC_PARTE
+}
+
+enum PrioridadDocumento {
+  RUTINARIO
+  URGENTE
+}
+
+enum ClasificacionDocumento {
+  PUBLICO
+  CONFIDENCIAL
+  RESERVADO
+  SECRETO
+}
+
+enum EstadoDocumento {
+  REGISTRADO
+  EN_TRANSITO
+  EN_TRAMITE
+  OBSERVADO
+  APROBADO
+  FINALIZADO
+  ARCHIVADO
+}
+
+enum TipoMovimientoDocumento {
+  ENVIO
+  DERIVACION
+  DEVOLUCION
+  REENVIO
+}
+
+enum EstadoMovimiento {
+  PENDIENTE
+  RECIBIDO
+  ANULADO
+}
+
+/// Solo cuando el elemento relacionado ES, en sí mismo, otro documento
+/// institucional con identidad propia (tipo, código interno, asunto).
+/// Evidencia/archivos simples NUNCA generan un DocumentoRelacionado: van
+/// como ArchivoDocumento (ligado opcionalmente a un CumplimientoDocumento).
+enum TipoRelacionDocumento {
+  RESPUESTA
+  ANEXO
+  CORRECCION
+}
+
+enum ProveedorAlmacenamiento {
+  LOCAL
+  S3
+}
+
+model CorrelativoDocumental {
+  id_correlativo Int                         @id @default(autoincrement())
+  ambito         AmbitoCorrelativoDocumental
+  anio           Int
+  ultimo_numero  Int                         @default(0)
+
+  @@unique([ambito, anio])
+}
+
+model Documento {
+  id_documento   Int                    @id @default(autoincrement())
+  codigo_interno String                 @unique @db.VarChar(30)
+  tipo_documento TipoDocumento
+  numero_origen  String?                @db.VarChar(60)
+  procedencia    String?                @db.VarChar(200)
+  asunto         String                 @db.VarChar(300)
+  sintesis       String?                @db.Text
+  prioridad      PrioridadDocumento     @default(RUTINARIO)
+  clasificacion  ClasificacionDocumento @default(PUBLICO)
+
+  /// Fecha que trae el documento físico/original (distinta de cuándo el
+  /// sistema lo registró).
+  fecha_documento     DateTime?
+  id_usuario_registro Int
+  id_seccion_registro Int
+  fecha_hora_registro DateTime  @default(now())
+
+  usuario_registro Usuario @relation("DocumentoUsuarioRegistro", fields: [id_usuario_registro], references: [id_usuario], onDelete: Restrict)
+  seccion_registro Seccion @relation("DocumentoSeccionRegistro", fields: [id_seccion_registro], references: [id_seccion], onDelete: Restrict)
+
+  /// Existe únicamente cuando este Documento es el principal de un caso
+  /// (workflow propio). Si es null, este Documento es una RESPUESTA,
+  /// ANEXO o CORRECCION vinculada a otro documento vía DocumentoRelacionado
+  /// y NO participa por sí mismo del workflow (sin estado, sin ubicación,
+  /// sin movimientos, sin hoja de ruta). Reemplaza al booleano
+  /// `es_principal`: "es principal" == "expediente != null".
+  expediente ExpedienteDocumento?
+
+  archivos ArchivoDocumento[]
+
+  relaciones_como_origen      DocumentoRelacionado[] @relation("DocumentoOrigen")
+  relaciones_como_relacionado DocumentoRelacionado[] @relation("DocumentoDestinoRelacion")
+
+  @@index([tipo_documento])
+  @@index([prioridad])
+  @@index([numero_origen])
+  @@index([fecha_hora_registro])
+}
+
+/// Tabla de extensión 1:1 (misma PK que Documento). Concentra todo lo que
+/// SOLO aplica a un documento principal: estado, ubicación, responsable y
+/// las tablas de workflow (HojaRuta, movimientos, historial, cumplimiento,
+/// observaciones). Se crea en la misma transacción que el Documento cuando
+/// éste nace como principal (típicamente al registrarlo en Radio); nunca
+/// se crea para una RESPUESTA/ANEXO/CORRECCION.
+model ExpedienteDocumento {
+  id_documento Int @id
+
+  estado_actual                 EstadoDocumento
+  id_seccion_actual             Int
+  id_usuario_responsable_actual Int?
+  fecha_hora_actualizacion      DateTime        @updatedAt
+
+  /// Qué debe producir el área ejecutora; lo fija el proveído que deriva
+  /// al área (normalmente el de Segundo Comando). Null mientras aún no se
+  /// determina (Radio / Secretaría / Comando).
+  tipo_atencion_requerida TipoAtencionRequerida?
+
+  documento                  Documento @relation(fields: [id_documento], references: [id_documento], onDelete: Restrict)
+  seccion_actual             Seccion   @relation("ExpedienteSeccionActual", fields: [id_seccion_actual], references: [id_seccion], onDelete: Restrict)
+  usuario_responsable_actual Usuario?  @relation("ExpedienteResponsableActual", fields: [id_usuario_responsable_actual], references: [id_usuario], onDelete: Restrict)
+
+  hoja_ruta     HojaRuta?
+  movimientos   MovimientoDocumento[]
+  historial     HistorialEstadoDocumento[]
+  cumplimientos CumplimientoDocumento[]
+  observaciones ObservacionDocumento[]
+
+  @@index([estado_actual])
+  @@index([id_seccion_actual])
+}
+
+model HojaRuta {
+  id_hoja_ruta          Int       @id @default(autoincrement())
+  numero                String    @unique @db.VarChar(30)
+  id_documento          Int       @unique
+  id_usuario_asigno     Int
+  id_seccion            Int
+  fecha_hora_asignacion DateTime  @default(now())
+  fecha_hora_cierre     DateTime?
+
+  expediente     ExpedienteDocumento @relation(fields: [id_documento], references: [id_documento], onDelete: Restrict)
+  usuario_asigno Usuario             @relation("HojaRutaUsuarioAsigno", fields: [id_usuario_asigno], references: [id_usuario], onDelete: Restrict)
+  seccion        Seccion             @relation("HojaRutaSeccion", fields: [id_seccion], references: [id_seccion], onDelete: Restrict)
+  proveidos      Proveido[]
+}
+
+model Proveido {
+  id_proveido        Int      @id @default(autoincrement())
+  id_hoja_ruta       Int
+  numero_momento     Int
+  contenido          String   @db.Text
+  fecha_hora         DateTime @default(now())
+  id_usuario_emisor  Int
+  id_seccion_emisora Int
+  id_seccion_destino Int?
+
+  hoja_ruta       HojaRuta        @relation(fields: [id_hoja_ruta], references: [id_hoja_ruta], onDelete: Restrict)
+  usuario_emisor  Usuario         @relation("ProveidoUsuarioEmisor", fields: [id_usuario_emisor], references: [id_usuario], onDelete: Restrict)
+  seccion_emisora Seccion         @relation("ProveidoSeccionEmisora", fields: [id_seccion_emisora], references: [id_seccion], onDelete: Restrict)
+  seccion_destino Seccion?        @relation("ProveidoSeccionDestino", fields: [id_seccion_destino], references: [id_seccion], onDelete: Restrict)
+  plazo           PlazoDocumento?
+
+  @@unique([id_hoja_ruta, numero_momento])
+  @@index([id_hoja_ruta])
+}
+
+/// Un plazo pertenece a UN proveído. Si el primer y el segundo proveído de
+/// una misma HojaRuta fijan plazo cada uno, existen DOS filas — ninguna se
+/// sobrescribe ni se elimina; ambas quedan como historial permanente. Cuál
+/// de los dos es el plazo "vigente" para el área responsable en un momento
+/// dado es una decisión de negocio del backend (típicamente: el del
+/// proveído más reciente cuya id_seccion_responsable coincide con la
+/// sección que atiende actualmente), no un dato adicional de este modelo.
+model PlazoDocumento {
+  id_plazo                Int       @id @default(autoincrement())
+  id_proveido             Int       @unique
+  id_seccion_responsable  Int
+  id_usuario_responsable  Int?
+  fecha_hora_limite       DateTime
+  fecha_hora_cumplimiento DateTime?
+
+  proveido            Proveido @relation(fields: [id_proveido], references: [id_proveido], onDelete: Restrict)
+  seccion_responsable Seccion  @relation("PlazoSeccionResponsable", fields: [id_seccion_responsable], references: [id_seccion], onDelete: Restrict)
+  usuario_responsable Usuario? @relation("PlazoUsuarioResponsable", fields: [id_usuario_responsable], references: [id_usuario], onDelete: Restrict)
+
+  @@index([fecha_hora_limite])
+}
+
+model MovimientoDocumento {
+  id_movimiento        Int                     @id @default(autoincrement())
+  id_documento         Int
+  id_seccion_origen    Int
+  id_seccion_destino   Int
+  id_usuario_envia     Int
+  fecha_hora_envio     DateTime                @default(now())
+  id_usuario_recibe    Int?
+  fecha_hora_recepcion DateTime?
+  tipo_movimiento      TipoMovimientoDocumento
+  estado_movimiento    EstadoMovimiento        @default(PENDIENTE)
+  observacion          String?                 @db.Text
+
+  expediente      ExpedienteDocumento @relation(fields: [id_documento], references: [id_documento], onDelete: Restrict)
+  seccion_origen  Seccion             @relation("MovimientoSeccionOrigen", fields: [id_seccion_origen], references: [id_seccion], onDelete: Restrict)
+  seccion_destino Seccion             @relation("MovimientoSeccionDestino", fields: [id_seccion_destino], references: [id_seccion], onDelete: Restrict)
+  usuario_envia   Usuario             @relation("MovimientoUsuarioEnvia", fields: [id_usuario_envia], references: [id_usuario], onDelete: Restrict)
+  usuario_recibe  Usuario?            @relation("MovimientoUsuarioRecibe", fields: [id_usuario_recibe], references: [id_usuario], onDelete: Restrict)
+
+  @@index([id_documento])
+  @@index([id_seccion_destino, estado_movimiento])
+}
+
+model HistorialEstadoDocumento {
+  id_historial    Int              @id @default(autoincrement())
+  id_documento    Int
+  estado_anterior EstadoDocumento?
+  estado_nuevo    EstadoDocumento
+  id_usuario      Int
+  id_seccion      Int
+  fecha_hora      DateTime         @default(now())
+  motivo          String?          @db.Text
+
+  expediente ExpedienteDocumento @relation(fields: [id_documento], references: [id_documento], onDelete: Restrict)
+  usuario    Usuario             @relation("HistorialEstadoUsuario", fields: [id_usuario], references: [id_usuario], onDelete: Restrict)
+  seccion    Seccion             @relation("HistorialEstadoSeccion", fields: [id_seccion], references: [id_seccion], onDelete: Restrict)
+
+  @@index([id_documento, fecha_hora])
+}
+
+model CumplimientoDocumento {
+  id_cumplimiento Int      @id @default(autoincrement())
+  id_documento    Int
+  descripcion     String   @db.Text
+  id_usuario      Int
+  id_seccion      Int
+  fecha_hora      DateTime @default(now())
+
+  expediente ExpedienteDocumento @relation(fields: [id_documento], references: [id_documento], onDelete: Restrict)
+  usuario    Usuario             @relation("CumplimientoUsuario", fields: [id_usuario], references: [id_usuario], onDelete: Restrict)
+  seccion    Seccion             @relation("CumplimientoSeccion", fields: [id_seccion], references: [id_seccion], onDelete: Restrict)
+  archivos   ArchivoDocumento[]
+
+  /// Expone el par (id_cumplimiento, id_documento) para que ArchivoDocumento
+  /// pueda declarar una FK compuesta contra él (ver ArchivoDocumento más
+  /// abajo) y así impedir a nivel de base de datos que un archivo apunte a
+  /// un id_documento distinto del dueño real del cumplimiento referenciado.
+  @@unique([id_cumplimiento, id_documento])
+  @@index([id_documento])
+}
+
+model DocumentoRelacionado {
+  id_relacion              Int                   @id @default(autoincrement())
+  id_documento_origen      Int
+  id_documento_relacionado Int
+  tipo_relacion            TipoRelacionDocumento
+  id_usuario_registro      Int
+  fecha_hora               DateTime              @default(now())
+
+  documento_origen      Documento @relation("DocumentoOrigen", fields: [id_documento_origen], references: [id_documento], onDelete: Restrict)
+  documento_relacionado Documento @relation("DocumentoDestinoRelacion", fields: [id_documento_relacionado], references: [id_documento], onDelete: Restrict)
+  usuario_registro      Usuario   @relation("DocumentoRelacionadoUsuario", fields: [id_usuario_registro], references: [id_usuario], onDelete: Restrict)
+
+  @@unique([id_documento_origen, id_documento_relacionado, tipo_relacion])
+  @@index([id_documento_relacionado])
+}
+
+model ObservacionDocumento {
+  id_observacion         Int       @id @default(autoincrement())
+  id_documento           Int
+  id_usuario             Int
+  id_seccion             Int
+  descripcion            String    @db.Text
+  fecha_hora             DateTime  @default(now())
+  subsanada              Boolean   @default(false)
+  fecha_hora_subsanacion DateTime?
+
+  expediente ExpedienteDocumento @relation(fields: [id_documento], references: [id_documento], onDelete: Restrict)
+  usuario    Usuario             @relation("ObservacionUsuario", fields: [id_usuario], references: [id_usuario], onDelete: Restrict)
+  seccion    Seccion             @relation("ObservacionSeccion", fields: [id_seccion], references: [id_seccion], onDelete: Restrict)
+
+  @@index([id_documento, subsanada])
+}
+
+model ArchivoDocumento {
+  id_archivo               Int                     @id @default(autoincrement())
+  id_documento             Int
+  id_cumplimiento          Int?
+  nombre_original          String                  @db.VarChar(255)
+  clave_almacenamiento     String                  @unique @db.VarChar(500)
+  proveedor_almacenamiento ProveedorAlmacenamiento @default(LOCAL)
+  tipo_mime                String                  @db.VarChar(120)
+  tamano_bytes             Int
+  hash_sha256              String                  @db.Char(64)
+  cifrado                  Boolean                 @default(false)
+  id_usuario_subida        Int
+  fecha_hora_subida        DateTime                @default(now())
+
+  documento Documento @relation(fields: [id_documento], references: [id_documento], onDelete: Restrict)
+
+  /// FK COMPUESTA (id_cumplimiento, id_documento) contra
+  /// CumplimientoDocumento.@@unique([id_cumplimiento, id_documento]).
+  /// Obliga a que, si el archivo referencia un cumplimiento, ese
+  /// cumplimiento pertenezca exactamente a este mismo id_documento — un
+  /// archivo del Documento A ya no puede apuntar a un CumplimientoDocumento
+  /// cuyo dueño real sea el Documento B (lo rechaza la constraint, no una
+  /// validación de service). Con id_cumplimiento = null la FK no aplica
+  /// (comportamiento estándar de Postgres para FK compuestas con NULL).
+  cumplimiento CumplimientoDocumento? @relation(fields: [id_cumplimiento, id_documento], references: [id_cumplimiento, id_documento], onDelete: Restrict)
+
+  usuario_subida Usuario @relation("ArchivoUsuarioSubida", fields: [id_usuario_subida], references: [id_usuario], onDelete: Restrict)
+
+  @@index([id_documento])
+}

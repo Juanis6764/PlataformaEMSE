@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(netstat -ano)",
+      "Bash(curl -s -o /dev/null -w \"status: %{http_code}\\\\n\" --max-time 5 http://localhost:3001/documentacion/secciones)",
+      "Bash(tasklist)",
+      "Bash(pg_dump --version)",
+      "Bash(psql --version)",
+      "Bash(ls \"/c/Program Files/PostgreSQL/17/bin/\" | grep -i \"pg_dump\\\\|psql\")",
+      "Read(//c/Program Files/PostgreSQL/17/**)",
+      "PowerShell(Get-ChildItem \"C:\\\\Program Files\\\\PostgreSQL\\\\17\\\\bin\" -ErrorAction SilentlyContinue | Where-Object { $_.Name -match 'pg_dump|psql' } | Select-Object Name)",
+      "Read(//c/Program Files/PostgreSQL/**)",
+      "Bash(cp \"/c/Users/Emily/AppData/Local/Temp/claude/c--Users-Emily-Desktop-plataforma-EMSE/9675dc5d-5f51-4d8b-8079-1038c3ffd3cc/scratchpad/investigar.ts\" \"/c/Users/Emily/Desktop/plataforma-EMSE/backend/scripts-tmp/investigar-usuarios-prueba.ts\")",
+      "Bash(node -e ' *)",
+      "Bash(cat /tmp/backend.log 2>&1 | tail -60)",
+      "Read(//tmp/**)",
+      "Bash(curl -s -X GET http://localhost:3001/notas/evaluaciones/materias/1 -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOjE4NTMsImNpIjoiODA4MDI4Iiwicm9sIjoiT1BFUkFET1IiLCJncnVwb191c3VhcmlvIjoiQURNSU5JU1RSQVRJVk9TX0FDQURFTUlDT1MiLCJzaWQiOjIxNSwiaWF0IjoxNzg3MTU5OTU2LCJleHAiOjE3ODcxNjM1NTZ9.Jpfyt7cTnBS0y1IxT9Z_n7R_PZfXIXHPp44YDdRBrd0' -w '\\\\nSTATUS=%{http_code}\\\\n')"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\Emily\\AppData\\Local\\Temp\\claude\\c--Users-Emily-Desktop-plataforma-EMSE\\9675dc5d-5f51-4d8b-8079-1038c3ffd3cc\\scratchpad"
+    ]
+  }
+}

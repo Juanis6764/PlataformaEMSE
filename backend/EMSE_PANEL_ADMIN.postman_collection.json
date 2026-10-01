@@ -1,0 +1,66 @@
+{
+  "info": {
+    "name": "EMSE - Panel Administrador",
+    "description": "Pruebas ordenadas de usuarios, cadetes, RBAC, suspensión y restablecimiento.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001" },
+    { "key": "accessToken", "value": "" },
+    { "key": "ciAdmin", "value": "9477023" },
+    { "key": "passwordAdmin", "value": "" },
+    { "key": "otpAdmin", "value": "" },
+    { "key": "usuarioId", "value": "" },
+    { "key": "cadeteId", "value": "" },
+    { "key": "cadeteUsuarioId", "value": "" },
+    { "key": "rolId", "value": "" },
+    { "key": "permisoId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "01 Solicitar OTP administrador",
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"ci\": \"{{ciAdmin}}\",\n  \"contrasena\": \"{{passwordAdmin}}\"\n}" }, "url": "{{baseUrl}}/autenticacion/iniciar-sesion", "description": "Esperado 201. PostgreSQL: CodigoVerificacion debe contener un registro no usado para el administrador." }
+    },
+    {
+      "name": "02 Verificar OTP administrador",
+      "event": [{ "listen": "test", "script": { "exec": ["pm.test('HTTP 201', () => pm.response.to.have.status(201));", "const data=pm.response.json();", "pm.collectionVariables.set('accessToken', data.accessToken);"] } }],
+      "request": { "method": "POST", "header": [{ "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"ci\": \"{{ciAdmin}}\",\n  \"codigo\": \"{{otpAdmin}}\"\n}" }, "url": "{{baseUrl}}/autenticacion/verificar-codigo", "description": "Esperado 201 y accessToken. PostgreSQL: Sesion activa=true." }
+    },
+    {
+      "name": "03 Listar usuarios y operadores",
+      "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/usuarios?limite=100", "description": "Esperado 200, total administrativo 19 y nueve registros con rol OPERADOR." }
+    },
+    {
+      "name": "04 Editar usuario",
+      "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"ci\": \"12345678\",\n  \"nombres\": \"Nombre Editado\",\n  \"apellidos\": \"Apellido Editado\",\n  \"correo\": \"pruebaemse2026@gmail.com\",\n  \"habilitado\": true\n}" }, "url": "{{baseUrl}}/usuarios/{{usuarioId}}", "description": "Esperado 200. Verificar los campos en Usuario por id_usuario." }
+    },
+    {
+      "name": "05 Guardar permisos individuales",
+      "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"permisos\": [\n    { \"id_permiso\": {{permisoId}}, \"concedido\": true }\n  ]\n}" }, "url": "{{baseUrl}}/usuarios/{{usuarioId}}/permisos", "description": "Esperado 200. UsuarioPermiso debe contener la concesión. Use concedido=false para revocar uno heredado." }
+    },
+    {
+      "name": "06 Guardar permisos del rol",
+      "request": { "method": "PUT", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"permisosIds\": [1, {{permisoId}}]\n}" }, "url": "{{baseUrl}}/roles/{{rolId}}/permisos", "description": "Esperado 200. El body reemplaza la lista completa del rol; incluya todos los permisos que desee conservar." }
+    },
+    {
+      "name": "07 Suspender usuario",
+      "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"habilitado\": false }" }, "url": "{{baseUrl}}/usuarios/{{usuarioId}}/estado", "description": "Esperado 200. Usuario.habilitado=false y sus sesiones activas deben quedar cerradas." }
+    },
+    {
+      "name": "08 Reactivar usuario",
+      "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{ \"habilitado\": true }" }, "url": "{{baseUrl}}/usuarios/{{usuarioId}}/estado", "description": "Esperado 200 y Usuario.habilitado=true." }
+    },
+    {
+      "name": "09 Restablecer contraseña",
+      "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": "{{baseUrl}}/usuarios/{{usuarioId}}/restablecer-contrasena", "description": "Esperado 201. La contraseña queda como hash bcrypt de EMSE2026, primer_inicio=true y las sesiones cerradas." }
+    },
+    {
+      "name": "10 Cambiar contraseña obligatoria",
+      "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"contrasenaActual\": \"EMSE2026\",\n  \"contrasenaNueva\": \"NuevaEMSE2026\"\n}" }, "url": "{{baseUrl}}/autenticacion/cambiar-contrasena", "description": "Use el token obtenido tras autenticar al usuario restablecido. Esperado 201 y primer_inicio=false." }
+    },
+    {
+      "name": "11 Editar datos personales de cadete",
+      "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }, { "key": "Content-Type", "value": "application/json" }], "body": { "mode": "raw", "raw": "{\n  \"ci\": \"87654321\",\n  \"nombres\": \"Cadete Editado\",\n  \"apellidos\": \"Apellido Cadete\",\n  \"correo\": \"pruebaemse2026@gmail.com\"\n}" }, "url": "{{baseUrl}}/usuarios/{{cadeteUsuarioId}}", "description": "Esperado 200. Verificar Usuario usando el id_usuario asociado al cadete." }
+    }
+  ]
+}
